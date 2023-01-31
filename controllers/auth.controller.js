@@ -1,5 +1,7 @@
 const User=require('../models/user.model')
 const bcrypt=require('bcryptjs')
+const jwt=require('jsonwebtoken');
+
 exports.signUp=async(req,res)=>{
     const userObj={
         username:req.body.username,
@@ -50,5 +52,37 @@ exports.signIn=async(req,res)=>{
 
 
 exports.forgetPassword=async(req,res)=>{
-    
+    const reqBody={
+        email:req.body.email,
+        password:req.body.password
+    }
+
+    const user=await User.findOne({email:reqBody.email});
+
+    if(!user)
+    {
+        return res.status(400).send({
+            message:"User Doesn't Exist"
+        })
+    }
+    bcrypt.hash(reqBody.password,8,(err,hash)=>{
+        if(err)
+        {
+            return res.status(500).send({error:err})
+        }
+        user.password=hash;
+        user.save((err)=>{
+            if(err)
+            {
+                return res.status(500).send({error:err});
+            }
+
+            const token=jwt.sign({id:user._id},"sandeep",{expiresIn:'1h'})
+            res.send(
+                {
+                    message:"Successfully Reset Password"
+                }
+            )
+        })
+    })
 }
